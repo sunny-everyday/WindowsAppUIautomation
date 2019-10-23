@@ -23,14 +23,41 @@ namespace UIAutomationTest
 
                 Console.WriteLine("\nBegin WinForm UIAutomation test run\n");
                 Console.WriteLine("Launching WinFormTest application");
-                //启动被测试的程序
-                Process p = Process.Start(@"D:\Debug(1)\IoTPlatform.exe");
 
                 //自动化根元素
                 AutomationElement aeDeskTop = AutomationElement.RootElement;
+                if (null == aeDeskTop)
+                {
+                    Console.WriteLine("DeskTop get fail");
+                }
 
-                Thread.Sleep(2000);
-                AutomationElement aeForm = AutomationElement.FromHandle(p.MainWindowHandle);
+                
+#if BYEXE
+                //启动被测试的程序
+                Process p = Process.Start(@"D:\Debug(1)\IoTPlatform.exe");
+                if (null == p)
+                {
+                    Console.WriteLine("Process get fail");
+                }
+                //根据执行程序名获取进程
+                Process[]  p2 = new Process[2];
+                if (null == Process.GetProcessesByName("IoTPlatform.ext"))
+                {
+                    Console.WriteLine("Process get fail");
+                }
+                else
+                {
+                    p2 = Process.GetProcessesByName("IoTPlatform");
+                    
+                    {
+                        Console.WriteLine("Process get OK");
+                    }
+                    
+                }
+
+                //修改登录界面 用户名、密码、环境信息； 点击确认键连接服务器
+                                Thread.Sleep(10000);
+                AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
                 //获得对主窗体对象的引用，该对象实际上就是 Form1 应用程序(方法一)
                 if (null == aeForm)
                 {
@@ -40,7 +67,7 @@ namespace UIAutomationTest
                 Console.WriteLine("Finding all user controls");
                 //找到第一次出现的Button控件
                 AutomationElement aeButton = aeForm.FindFirst(TreeScope.Children,
-                  new PropertyCondition(AutomationElement.NameProperty, "登录"));
+                  new PropertyCondition(AutomationElement.AutomationIdProperty, "BtnLogin"));
 
                 //找到所有的TextBox控件
                 AutomationElementCollection aeAllTextBoxes = aeForm.FindAll(TreeScope.Children,
@@ -59,11 +86,11 @@ namespace UIAutomationTest
                 AutomationElement aeTextBox2 = aeAllTextBoxes[1];
                 AutomationElement aeTextComboBox = aeComboBox[0];
 
-               Console.WriteLine("Settiing user");
+               //Console.WriteLine("Settiing user");
                 //通过ValuePattern设置TextBox1的值
                ValuePattern vpTextBox1 = (ValuePattern)aeTextBox1.GetCurrentPattern(ValuePattern.Pattern);
                vpTextBox1.SetValue("zhangyz5");
-               Console.WriteLine("Settiing input user");
+               //Console.WriteLine("Settiing input user");
                //通过ValuePattern设置TextBox2的值
                ValuePattern vpTextBox2 = (ValuePattern)aeTextBox2.GetCurrentPattern(ValuePattern.Pattern);
                vpTextBox2.SetValue("jsepc0730@!");
@@ -76,32 +103,67 @@ namespace UIAutomationTest
                 //通过InvokePattern模拟点击按钮
                 InvokePattern ipClickButton1 = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
                 ipClickButton1.Invoke();
+
+                //实现关闭被测试程序
+                //WindowPattern wpCloseForm = (WindowPattern)aeForm.GetCurrentPattern(WindowPattern.Pattern);
+                //wpCloseForm.Close();
+
+                //Console.WriteLine("\nEnd test run\n");
+#endif
+
+                //根据controltype获取到服务平台
+                AutomationElement aeForm = aeDeskTop.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.NameProperty, "输变电物联网服务平台"));
+                if (null == aeForm)
+                {
+                    Console.WriteLine("aeForm get fail");
+                }
+                
+                //获取子窗口
+                AutomationElement aeTabControl = aeForm.FindFirst(TreeScope.Children,
+                 new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tab));
+                if (null == aeTabControl)
+                {
+                    Console.WriteLine("aeTabControl get fail");
+                }
+
+                //获取输电可视化窗口
+                AutomationElement aeTabItemControl = aeTabControl.FindFirst(TreeScope.Children,
+                 new PropertyCondition(AutomationElement.NameProperty, "输电线路可视化"));
+                if (null == aeTabItemControl)
+                {
+                    Console.WriteLine("aeTabItemControl get fail");
+                }
+
+                //获取自定义窗口 
+                AutomationElement aeCustomControl = aeTabItemControl.FindFirst(TreeScope.Children,
+                 new PropertyCondition(AutomationElement.ClassNameProperty, "OutsidePage"));
+                if (null == aeCustomControl)
+                {
+                    Console.WriteLine("aeCustomControl get fail");
+                }
+                
+                //找到详情的Button控件
+                AutomationElement aeButton = aeCustomControl.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.HelpTextProperty, "详情"));
+                if (null == aeButton)
+                {
+                    Console.WriteLine("aeButton get fail");
+                }
+                //通过InvokePattern模拟点击按钮
+                InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
+                ipClickButton.Invoke();
+
                 Thread.Sleep(1500);
 
-                //验证计算的结果与预期的结果是否相符合
-                Console.WriteLine("Checking textBox3 for '80'");
-                //TextPattern tpTextBox3 = (TextPattern)aeTextBox3.GetCurrentPattern(TextPattern.Pattern);
-                //string result = tpTextBox3.DocumentRange.GetText(-1);//获取textbox3中的值
-                //获取textbox3中的值
-                //string result = (string)aeTextBox2.GetCurrentPropertyValue(ValuePattern.ValueProperty);
-                //if ("80" == result)
-                {
-                    Console.WriteLine("Found it.");
-                    Console.WriteLine("TTest scenario: *PASS*");
-                }
-               // else
                 {
                     Console.WriteLine("Did not find it.");
                     Console.WriteLine("Test scenario: *FAIL*");
                 }
 
-                Console.WriteLine("Close application in 5 seconds.");
-                Thread.Sleep(5000);
-                //实现关闭被测试程序
-                WindowPattern wpCloseForm = (WindowPattern)aeForm.GetCurrentPattern(WindowPattern.Pattern);
-                wpCloseForm.Close();
+                Console.WriteLine("wait for long time.");
+                Thread.Sleep(100000);
 
-                Console.WriteLine("\nEnd test run\n");
             }
             catch (Exception ex)
             {
