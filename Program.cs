@@ -15,14 +15,6 @@ namespace UIAutomationTest
             try
             {
                 Console.WriteLine("\nBegin WinForm UIAutomation test run\n");
-                // launch Form1 application
-                // get refernce to main Form control
-                // get references to user controls
-                // manipulate application
-                // check resulting state and determine pass/fail
-
-                Console.WriteLine("\nBegin WinForm UIAutomation test run\n");
-                Console.WriteLine("Launching WinFormTest application");
 
                 //自动化根元素
                 AutomationElement aeDeskTop = AutomationElement.RootElement;
@@ -31,7 +23,6 @@ namespace UIAutomationTest
                     Console.WriteLine("DeskTop get fail");
                 }
 
-                
 #if BYEXE
                 //启动被测试的程序
                 Process p = Process.Start(@"D:\Debug(1)\IoTPlatform.exe");
@@ -110,56 +101,305 @@ namespace UIAutomationTest
 
                 //Console.WriteLine("\nEnd test run\n");
 #endif
-
+#if DESKTOP
                 //根据controltype获取到服务平台
                 AutomationElement aeForm = aeDeskTop.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.NameProperty, "输变电物联网服务平台"));
                 if (null == aeForm)
                 {
                     Console.WriteLine("aeForm get fail");
+                    return;
                 }
-                
+#endif
+                //根据执行程序名获取进程
+                Process[] p2 = new Process[2];
+                p2 = Process.GetProcessesByName("IoTPlatform");
+                if (null == p2[0])
+                {
+                    Console.WriteLine("Process get fail");
+                    return;
+                }
+                else
+                {                 
+                    Console.WriteLine("Process get OK");         
+                }
+                Console.WriteLine("Process 1");
+                AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
+                //获得对主窗体对象的引用，该对象实际上就是 Form1 应用程序(方法一)
+                if (null == aeForm)
+                {
+                    Console.WriteLine("Can not find the WinFormTest from.");
+                    return;
+                }
+                Console.WriteLine("Process 2");
                 //获取子窗口
                 AutomationElement aeTabControl = aeForm.FindFirst(TreeScope.Children,
                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tab));
                 if (null == aeTabControl)
                 {
                     Console.WriteLine("aeTabControl get fail");
+                    return;
                 }
-
+                Console.WriteLine("Process 3");
                 //获取输电可视化窗口
                 AutomationElement aeTabItemControl = aeTabControl.FindFirst(TreeScope.Children,
                  new PropertyCondition(AutomationElement.NameProperty, "输电线路可视化"));
                 if (null == aeTabItemControl)
                 {
                     Console.WriteLine("aeTabItemControl get fail");
+                    return;
                 }
-
+                Console.WriteLine("Process 4");
                 //获取自定义窗口 
                 AutomationElement aeCustomControl = aeTabItemControl.FindFirst(TreeScope.Children,
                  new PropertyCondition(AutomationElement.ClassNameProperty, "OutsidePage"));
                 if (null == aeCustomControl)
                 {
                     Console.WriteLine("aeCustomControl get fail");
+                    return;
                 }
-                
+                Console.WriteLine("Process 5");
                 //找到详情的Button控件
                 AutomationElement aeButton = aeCustomControl.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.HelpTextProperty, "详情"));
                 if (null == aeButton)
                 {
                     Console.WriteLine("aeButton get fail");
+                    return;
                 }
+                Console.WriteLine("Process 6");
                 //通过InvokePattern模拟点击按钮
                 InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
                 ipClickButton.Invoke();
 
-                Thread.Sleep(1500);
-
+                Thread.Sleep(20000);
+                
+                //找到视频监控界面控件
+               
+                AutomationElement aeOutsideDetail = aeCustomControl.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ClassNameProperty, "OutsideDetailes"));
+                if (null == aeOutsideDetail)
                 {
-                    Console.WriteLine("Did not find it.");
-                    Console.WriteLine("Test scenario: *FAIL*");
+                    Console.WriteLine("aeOutsideDetail get fail");
+                    Thread.Sleep(1000);
+                    return;
                 }
+                //找到树视图
+                AutomationElement aetree = aeOutsideDetail.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ClassNameProperty, "Tree"));
+                if (null == aetree)
+                {
+                    Console.WriteLine("aetree get fail");
+                    Thread.Sleep(1000);
+                    return;
+                }
+                //找到ProgressBar
+                AutomationElement aeProgressBar = aetree.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ProgressBar));
+                if (null == aeProgressBar)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return;
+                }
+                //找到tree
+                AutomationElement aetree2 = aeProgressBar.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+                if (null == aetree2)
+                {
+                    Console.WriteLine("aetree2 get fail");
+                    Thread.Sleep(1000);
+                    return;
+                }
+
+                //找到treeItem
+                AutomationElement aetreeItem = aetree2.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                if (null == aetreeItem)
+                {
+                    Console.WriteLine("aetreeItem get fail");
+                    Thread.Sleep(1000);
+                    return;
+                }
+                //获取所有地市级treeItem
+                AutomationElementCollection aeCitytreeItemes = aetreeItem.FindAll(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                if (0 == aeCitytreeItemes.Count)
+                {
+                    Console.WriteLine("aeCitytreeItem get 0.");
+                    Thread.Sleep(1000);
+                    return;
+                }
+                
+                int CityNumber = aeCitytreeItemes.Count;
+                Console.WriteLine(CityNumber);
+                for (int i = 0; i < CityNumber; i++)
+                { 
+                    //获取地市级公司名
+                    AutomationElement aeCityName = aeCitytreeItemes[i].FindFirst(TreeScope.Children,
+                      new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                    if (null != aeCityName)
+                    {
+                        Console.WriteLine("CityName is ");
+                        Console.WriteLine(aeCityName.Current.Name);
+                        Thread.Sleep(1000);
+ 
+                    }
+                    //展开节点
+                    ExpandCollapsePattern ExpandPattern1 = (ExpandCollapsePattern)aeCitytreeItemes[i].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+                    
+                    Thread.Sleep(1000);
+                    //currentPattern.Collapse();
+                    ExpandPattern1.Expand();
+
+                    //区级节点操作
+                    Thread.Sleep(10000);
+                    //获取该地市区级公司
+                    AutomationElementCollection aedistrictItemes = aeCitytreeItemes[i].FindAll(TreeScope.Children,
+                      new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                    if (0 == aedistrictItemes.Count)
+                    {
+                        Console.WriteLine("aedistrictItemes get 0.");
+                        Thread.Sleep(1000);
+                        return;
+                    }
+                    int districtNumber = aedistrictItemes.Count;
+                    Console.WriteLine(districtNumber);
+                    for (int j = 0; j < districtNumber; j++)
+                    {
+                        //获取区级公司名
+                        AutomationElement aedistrictName = aedistrictItemes[j].FindFirst(TreeScope.Children,
+                          new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                        if (null != aedistrictName)
+                        {
+                            Console.WriteLine("aedistrictName is ");
+                            Console.WriteLine(aedistrictName.Current.Name);
+                            Thread.Sleep(1000);
+                        }
+                        //展开节点
+                        ExpandCollapsePattern ExpandPattern2 = (ExpandCollapsePattern)aedistrictItemes[j].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                        Thread.Sleep(1000);
+                        //currentPattern.Collapse();
+                        ExpandPattern2.Expand();
+
+                        //交流电级节点操作
+                        Thread.Sleep(10000);
+                        AutomationElementCollection aeVoltageItemes = aedistrictItemes[j].FindAll(TreeScope.Children,
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                        if (0 == aeVoltageItemes.Count)
+                        {
+                            Console.WriteLine("aedistrictItemes get 0.");
+                            Thread.Sleep(1000);
+                            return;
+                        }
+                        int VoltageNumber = aeVoltageItemes.Count;
+                        Console.WriteLine(VoltageNumber);
+                        for (int k = 0; k < VoltageNumber; k++)
+                        {
+                            //获取交流电压级别名称
+                            AutomationElement aeVoltageName = aeVoltageItemes[k].FindFirst(TreeScope.Children,
+                                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                            if (null != aeVoltageName)
+                            {
+                                Console.WriteLine("aeVoltageName is ");
+                                Console.WriteLine(aeVoltageName.Current.Name);
+                                Thread.Sleep(1000);
+                            }
+                            //展开节点
+                            ExpandCollapsePattern ExpandPattern3 = (ExpandCollapsePattern)aeVoltageItemes[k].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                            Thread.Sleep(1000);
+                               
+                            ExpandPattern3.Expand();
+
+                            //杆塔线路级操作
+                            Thread.Sleep(10000);
+                            AutomationElementCollection aelineItemes = aeVoltageItemes[k].FindAll(TreeScope.Children,
+                             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                            if (0 == aelineItemes.Count)
+                            {
+                                Console.WriteLine("aelineItemes get 0.");
+                                Thread.Sleep(1000);
+                                return;
+                            }
+                            int lineNumber = aelineItemes.Count;
+                            Console.WriteLine(lineNumber);
+                            for (int l = 0; l < lineNumber; l++)
+                            {
+                                //获取杆塔线路名称
+                                AutomationElement aelineName = aelineItemes[l].FindFirst(TreeScope.Children,
+                                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                                if (null != aelineName)
+                                {
+                                    Console.WriteLine("aelineName is ");
+                                    Console.WriteLine(aelineName.Current.Name);
+                                    Thread.Sleep(1000);
+                                }
+                                //展开节点
+                                ExpandCollapsePattern ExpandPattern4 = (ExpandCollapsePattern)aelineItemes[l].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                                Thread.Sleep(1000);
+
+                                ExpandPattern4.Expand();
+
+                                //杆塔级操作
+                                Thread.Sleep(10000);
+                                AutomationElementCollection aetowerItemes = aelineItemes[l].FindAll(TreeScope.Children,
+                             new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                                if (0 == aetowerItemes.Count)
+                                {
+                                    Console.WriteLine("aetowerItemes get 0.");
+                                    Thread.Sleep(1000);
+                                    return;
+                                }
+                                int towerNumber = aetowerItemes.Count;
+                                Console.WriteLine(towerNumber);
+                                for (int m = 0; m < towerNumber; m++)
+                                {
+                                    //获取杆塔名称
+                                    AutomationElement towerName = aetowerItemes[m].FindFirst(TreeScope.Children,
+                                        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                                    if (null != towerName)
+                                    {
+                                        Console.WriteLine("towerName is ");
+                                        Console.WriteLine(towerName.Current.Name);
+                                        Thread.Sleep(1000);
+                                    }
+                                    //展开节点
+                                    ExpandCollapsePattern ExpandPattern5 = (ExpandCollapsePattern)aetowerItemes[m].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                                    Thread.Sleep(1000);
+
+                                    ExpandPattern5.Expand();
+
+                                    //摄像头操作
+                                    Console.WriteLine("to be done ");
+
+                                    //折叠节点
+                                    ExpandPattern5.Collapse();
+                                }
+
+                                //折叠节点
+                                ExpandPattern4.Collapse();
+                            }
+
+
+                            //折叠节点
+                            ExpandPattern3.Collapse();
+                        }
+
+                        //折叠节点
+                        ExpandPattern2.Collapse();
+                    }
+                    //currentPattern.Collapse();
+                    ExpandPattern1.Collapse();
+
+                }
+
+                Console.WriteLine("Did not find it.");
+                Console.WriteLine("Test scenario: *FAIL*");
+                
 
                 Console.WriteLine("wait for long time.");
                 Thread.Sleep(100000);
