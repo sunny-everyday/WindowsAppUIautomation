@@ -4,7 +4,10 @@ using System.Threading;
 using System.Windows.Automation.Provider;
 using System.Windows.Automation.Text;
 using System.Windows.Automation;
-
+using System.Reflection;
+using MSExcel = Microsoft.Office.Interop.Excel;
+//using Microsoft.Office.Core;
+using System.IO;
 
 namespace UIAutomationTest
 {
@@ -46,10 +49,10 @@ namespace UIAutomationTest
                     
                 }
 
-                //修改登录界面 用户名、密码、环境信息； 点击确认键连接服务器
-                                Thread.Sleep(10000);
+                
+                Thread.Sleep(10000);
                 AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
-                //获得对主窗体对象的引用，该对象实际上就是 Form1 应用程序(方法一)
+                //获得对主窗体对象的引用
                 if (null == aeForm)
                 {
                     Console.WriteLine("Can not find the WinFormTest from.");
@@ -111,6 +114,8 @@ namespace UIAutomationTest
                     return;
                 }
 #endif
+
+#if IOT
                 //根据执行程序名获取进程
                 Process[] p2 = new Process[2];
                 p2 = Process.GetProcessesByName("IoTPlatform");
@@ -125,7 +130,7 @@ namespace UIAutomationTest
                 }
                 Console.WriteLine("Process 1");
                 AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
-                //获得对主窗体对象的引用，该对象实际上就是 Form1 应用程序(方法一)
+                //获得对主窗体对象的引用
                 if (null == aeForm)
                 {
                     Console.WriteLine("Can not find the WinFormTest from.");
@@ -168,6 +173,15 @@ namespace UIAutomationTest
                     return;
                 }
                 Console.WriteLine("Process 6");
+#endif
+                String[] DeviceName;
+                DeviceName = new String[500];
+                int DeviceNUM = 0;
+                unsafe
+                {
+                    readxls(DeviceName, &DeviceNUM);
+                }
+#if IOT
                 //通过InvokePattern模拟点击按钮
                 InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
                 ipClickButton.Invoke();
@@ -175,7 +189,7 @@ namespace UIAutomationTest
                 Thread.Sleep(20000);
                 
                 //找到视频监控界面控件
-               
+
                 AutomationElement aeOutsideDetail = aeCustomControl.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.ClassNameProperty, "OutsideDetailes"));
                 if (null == aeOutsideDetail)
@@ -184,6 +198,8 @@ namespace UIAutomationTest
                     Thread.Sleep(1000);
                     return;
                 }
+#endif
+#if FORINTURN
                 //找到树视图
                 AutomationElement aetree = aeOutsideDetail.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.ClassNameProperty, "Tree"));
@@ -396,6 +412,7 @@ namespace UIAutomationTest
                     ExpandPattern1.Collapse();
 
                 }
+#endif
 
                 Console.WriteLine("Did not find it.");
                 Console.WriteLine("Test scenario: *FAIL*");
@@ -409,6 +426,58 @@ namespace UIAutomationTest
             {
                 Console.WriteLine("Fatal error: " + ex.Message);
             }
+        }
+        unsafe public static bool readxls(string[] DeviceName, int* DeviceNUM)
+        {
+            string strDir = Directory.GetCurrentDirectory();
+
+            string fileName = strDir + @"\博瑞思运维设备.xlsx";
+
+            MSExcel.Application excelApp= new MSExcel.Application();
+
+            excelApp.Visible = true;//是打开可见
+
+            MSExcel.Workbooks wbks = excelApp.Workbooks;
+
+            MSExcel._Workbook wbk = wbks.Add(fileName);
+ 
+
+            object Nothing = Missing.Value;
+
+            MSExcel._Worksheet whs;// = wbk.Sheets.Add(Nothing, Nothing, Nothing, Nothing);
+
+            whs = wbk.Sheets[1];//获取第一张工作表
+
+            whs.Activate();
+            //取得总记录行数    (包括标题列)
+
+            int rowsint = whs.UsedRange.Cells.Rows.Count; //得到行数
+
+            int columnsint = whs.UsedRange.Cells.Columns.Count;//得到列数
+
+
+
+            for (int i = 2; i <= rowsint; i++)
+            {
+                //MSExcel.Range rang = (MSExcel.Range)whs.Cells[i, 2];//单元格Bi
+                //((Range)worksheet.Cells[1, i + 1]).HorizontalAlignment = XlVAlign.xlVAlignCenter;
+                DeviceName[i - 2] = whs.Cells[i, 2].ToString();
+                whs.Cells[i, 6] = "在线";
+                * DeviceNUM += 1;
+            }
+
+
+            wbk.Close();//关闭文档
+
+            wbks.Close();//关闭工作簿
+
+            excelApp.Quit();//关闭excel应用程序
+
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);//释放excel进程
+
+            excelApp = null;
+            return true;
+
         }
     }
 }
