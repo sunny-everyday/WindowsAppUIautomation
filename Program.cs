@@ -1,4 +1,5 @@
-﻿using System;
+﻿//#define IOT
+using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Automation.Provider;
@@ -174,6 +175,7 @@ namespace UIAutomationTest
                 }
                 Console.WriteLine("Process 6");
 #endif
+                //从xlsx中获取设备名称
                 String[] DeviceName;
                 DeviceName = new String[500];
                 int DeviceNUM = 0;
@@ -181,6 +183,22 @@ namespace UIAutomationTest
                 {
                     readxls(DeviceName, &DeviceNUM);
                 }
+                //依次根据设备名搜索视频信息，记录设备状态
+                bool[] DeviceState;
+                DeviceState = new bool[500];
+                if (DeviceNUM > 500)
+                {
+                    Console.WriteLine("DeviceNUM bigger than program maximum, please change program.");
+                    return;
+                }
+                for (int Index = 0; Index < DeviceNUM; Index++)
+                { 
+                    
+                }
+
+                //将设备状态记录到xlsx
+                writexls(DeviceState, DeviceNUM);
+
 #if IOT
                 //通过InvokePattern模拟点击按钮
                 InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
@@ -459,13 +477,71 @@ namespace UIAutomationTest
 
             for (int i = 2; i <= rowsint; i++)
             {
-                //MSExcel.Range rang = (MSExcel.Range)whs.Cells[i, 2];//单元格Bi
+                
                 //((Range)worksheet.Cells[1, i + 1]).HorizontalAlignment = XlVAlign.xlVAlignCenter;
-                DeviceName[i - 2] = whs.Cells[i, 2].ToString();
-                whs.Cells[i, 6] = "在线";
+                MSExcel.Range rang = (MSExcel.Range)whs.Cells[i, 2];//单元格B2
+
+                DeviceName[i - 2] = rang.Text;//该单元格文本
+               
+                //whs.Cells[i, 6] = "在线";
                 * DeviceNUM += 1;
             }
 
+
+            wbk.Close();//关闭文档
+
+            wbks.Close();//关闭工作簿
+
+            excelApp.Quit();//关闭excel应用程序
+
+            System.Runtime.InteropServices.Marshal.ReleaseComObject(excelApp);//释放excel进程
+
+            excelApp = null;
+            return true;
+
+        }
+        public static bool writexls(bool[] Devicestate, int DeviceNUM)
+        {
+            string strDir = Directory.GetCurrentDirectory();
+
+            string fileName = strDir + @"\博瑞思运维设备.xlsx";
+
+            MSExcel.Application excelApp = new MSExcel.Application();
+
+            excelApp.Visible = true;//是打开可见
+
+            MSExcel.Workbooks wbks = excelApp.Workbooks;
+
+            MSExcel._Workbook wbk = wbks.Add(fileName);
+
+
+            object Nothing = Missing.Value;
+
+            MSExcel._Worksheet whs;// = wbk.Sheets.Add(Nothing, Nothing, Nothing, Nothing);
+
+            whs = wbk.Sheets[1];//获取第一张工作表
+
+            whs.Activate();
+            //取得总记录行数    (包括标题列)
+            whs.Cells[1, 6] = "设备在线状态";
+
+            for (int i = 2; i < DeviceNUM + 2; i++)
+            {
+
+                if (Devicestate[i - 2] == true)
+                {
+                    whs.Cells[i, 6] = "在线";
+                }
+                else 
+                {
+                    whs.Cells[i, 6] = "离线";
+                }
+               
+            }
+
+            excelApp.DisplayAlerts = false;//不弹出是否保存的对话框
+
+            wbk.SaveCopyAs(strDir + @"\博瑞思运维设备_检查结果.xlsx");
 
             wbk.Close();//关闭文档
 
