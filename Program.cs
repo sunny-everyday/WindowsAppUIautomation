@@ -27,7 +27,7 @@ namespace UIAutomationTest
         private readonly int MOUSEEVENTF_RIGHTUP = 0x0010; //模拟鼠标右键抬起 
         private readonly int MOUSEEVENTF_MIDDLEDOWN = 0x0020; //模拟鼠标中键按下 
         private readonly int MOUSEEVENTF_MIDDLEUP = 0x0040;// 模拟鼠标中键抬起 
-  
+        [DllImport("user32.dll")]
         public static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
         static void Main(string[] args)
         {
@@ -204,14 +204,14 @@ namespace UIAutomationTest
                     Console.WriteLine("Get NO Device from file.");
                     return;
                 }
-#if ENTER
+
                 //点击详情按键，进入设备信息界面
                 //通过InvokePattern模拟点击按钮
                 InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
                 ipClickButton.Invoke();
 
                 Thread.Sleep(20000);
-#endif
+
                 //找到视频监控界面控件
                 AutomationElement aeOutsideDetail = aeCustomControl.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.ClassNameProperty, "OutsideDetailes"));
@@ -227,7 +227,8 @@ namespace UIAutomationTest
                     Console.WriteLine("aeSearch get fail");
                     Thread.Sleep(1000);
                     return;
-                }
+                };
+                AutomationElement aeBasicTreeItem = GetBasicTreeItem(aeOutsideDetail);
                 //依次根据设备名搜索视频信息，记录设备状态
                 bool[] DeviceState;
                 DeviceState = new bool[500];
@@ -251,6 +252,10 @@ namespace UIAutomationTest
                         DeviceState[Index] = true;//暂时这样
                         Console.WriteLine("Device Index", Index, "can find");
                         //获取到摄像头节点
+                        //折叠主节点
+                        ExpandCollapsePattern ExpandPattern1 = (ExpandCollapsePattern)aeBasicTreeItem.GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                        ExpandPattern1.Collapse();
                     }
                     
                 }
@@ -674,6 +679,47 @@ namespace UIAutomationTest
             }
             return null;
         }
+        public static AutomationElement GetBasicTreeItem(AutomationElement aeOutsideDetail)
+        {
+            //找到树视图
+            AutomationElement aetree = aeOutsideDetail.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ClassNameProperty, "Tree"));
+            if (null == aetree)
+            {
+                Console.WriteLine("aetree get fail");
+                Thread.Sleep(1000);
+                return null;
+            }
+            //找到ProgressBar
+            AutomationElement aeProgressBar = aetree.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ProgressBar));
+            if (null == aeProgressBar)
+            {
+                Console.WriteLine("aeProgressBar get fail");
+                Thread.Sleep(1000);
+                return null;
+            }
+            //找到tree
+            AutomationElement aetree2 = aeProgressBar.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+            if (null == aetree2)
+            {
+                Console.WriteLine("aetree2 get fail");
+                Thread.Sleep(1000);
+                return null;
+            }
+
+            //找到treeItem
+            AutomationElement aetreeItem = aetree2.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+            if (null == aetreeItem)
+            {
+                Console.WriteLine("aetreeItem get fail");
+                Thread.Sleep(1000);
+                return null;
+            }
+            return aetreeItem;
+        }
         public static AutomationElement GetSearchText(AutomationElement aeOutsideDetail)
         {
             //找到文本搜索控件
@@ -719,7 +765,7 @@ namespace UIAutomationTest
             //通过ValuePattern激活输入框
             ValuePattern vpTextBox1 = (ValuePattern)aeAutoCompleteBox.GetCurrentPattern(ValuePattern.Pattern);
             vpTextBox1.SetValue(DeviceName);
-
+            Thread.Sleep(2000);
 
             AutomationElement aeEdit = aeAutoCompleteBox.FindFirst(TreeScope.Children,
                   new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
