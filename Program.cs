@@ -27,8 +27,21 @@ namespace UIAutomationTest
         private readonly int MOUSEEVENTF_RIGHTUP = 0x0010; //模拟鼠标右键抬起 
         private readonly int MOUSEEVENTF_MIDDLEDOWN = 0x0020; //模拟鼠标中键按下 
         private readonly int MOUSEEVENTF_MIDDLEUP = 0x0040;// 模拟鼠标中键抬起 
+        
+        public struct PONITAPI
+        {
+            public int x, y;
+        }
+
+        [DllImport("user32.dll")]
+        public static extern int GetCursorPos(ref PONITAPI p);
+
+        [DllImport("user32.dll")]
+        public static extern int SetCursorPos(int x, int y);
+
         [DllImport("user32.dll")]
         public static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
+
         static void Main(string[] args)
         {
             try
@@ -826,6 +839,95 @@ namespace UIAutomationTest
                 return false;
             }
 
+
+            if (CameraNode.Current.BoundingRectangle.Bottom > 700)
+            {
+
+                Thread.Sleep(2000);
+                //return true;
+
+                Console.WriteLine("zoubiao  ", CameraNode.Current.BoundingRectangle.Bottom, CameraNode.Current.BoundingRectangle.Top);
+
+
+                Console.WriteLine("Node off screen.");
+                //找到树视图
+                bool isPatternAvailable = (bool)
+                       aeOutsideDetail.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+                AutomationElement aetree = aeOutsideDetail.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ClassNameProperty, "Tree"));
+                if (null == aetree)
+                {
+                    Console.WriteLine("aetree get fail");
+                    Thread.Sleep(1000);
+                    return true;
+                }
+                isPatternAvailable = (bool)
+                       aetree.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+                //找到ProgressBar
+                AutomationElement aeProgressBar = aetree.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ProgressBar));
+                if (null == aeProgressBar)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return true;
+                }
+                AutomationElement Treeview = aeProgressBar.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+                if (null == aeProgressBar)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return true;
+                }
+                isPatternAvailable = (bool)
+                       Treeview.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+
+                AutomationElement TreeItemview = Treeview.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+                if (null == TreeItemview)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return true;
+                }
+                isPatternAvailable = (bool)
+                       TreeItemview.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+
+                ScrollPattern vpScroll = (ScrollPattern)aetree.GetCurrentPattern(ScrollPattern.Pattern);
+                
+                Thread.Sleep(2000);
+                if (vpScroll.Current.VerticallyScrollable)
+                {
+                    vpScroll.ScrollVertical(ScrollAmount.LargeIncrement);
+
+                }
+            }
+            //System.Windows.Point clickablePoint;
+            SetCursorPos((int)CameraNode.Current.BoundingRectangle.X, (int)CameraNode.Current.BoundingRectangle.Y);
+            
+
+            PONITAPI p = new PONITAPI();
+            GetCursorPos(ref p);
+            Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
+            Console.WriteLine("Sleep 1 sec...");
+            Thread.Sleep(1000);
+
+
+            Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(1000);
+
+            Console.WriteLine("在X:{0}, Y:{1} 释放鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTUP, p.x, p.y, 0, 0);
+            Console.WriteLine("程序结束，按任意键退出....");
+            Console.ReadKey();
             
             Thread.Sleep(1000);
             return true;
