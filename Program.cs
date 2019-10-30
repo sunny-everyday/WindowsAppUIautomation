@@ -1,5 +1,4 @@
-﻿#define IOT
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Windows.Automation.Provider;
@@ -31,8 +30,12 @@ namespace UIAutomationTest
         public struct PONITAPI
         {
             public int x, y;
-        }
-
+        };
+        public struct DeviceInfo
+        {
+            public string DeviceName;
+            public bool   DeviceState;
+        };
         [DllImport("user32.dll")]
         public static extern int GetCursorPos(ref PONITAPI p);
 
@@ -134,7 +137,7 @@ namespace UIAutomationTest
                 //Console.WriteLine("\nEnd test run\n");
 #endif
 
-#if IOT
+
                 //根据执行程序名获取进程
                 Process[] p2 = new Process[2];
                 p2 = Process.GetProcessesByName("IoTPlatform");
@@ -192,12 +195,11 @@ namespace UIAutomationTest
                     return;
                 }
                 Console.WriteLine("Process 6");
-#endif
+
                 //从xlsx中获取设备名称
                 String[] DeviceName;
                 DeviceName = new String[500];
                 int DeviceNUM = 0;
-                //DeviceName[0] = "100210001403510098";
                 unsafe
                 {
                     readxls(DeviceName, &DeviceNUM);
@@ -240,24 +242,23 @@ namespace UIAutomationTest
                     Console.WriteLine("DeviceNUM bigger than program maximum, please change program.");
                     return;
                 }
-
+                DeviceInfo[] deviceInfo = new DeviceInfo[500];
+                OpenCameraNode(aeBasicTreeItem, deviceInfo);
                 for (int Index = 0; Index < DeviceNUM; Index++)
                 {
                     //搜索设备，查看视频状态, 记录状态
-                    if (false == lookdevice(DeviceName[Index], aeSearch,aeOutsideDetail))
+                    //if (false == lookdevice(DeviceName[Index], aeSearch,aeOutsideDetail))
                     {
                         DeviceState[Index] = false;
                         Console.WriteLine("Device Index",Index,"can't find");
-
                     }
-                    else
+                    //else
                     {
                         DeviceState[Index] = true;//暂时这样
                         Console.WriteLine("Device Index", Index, "can find");
                         //获取到摄像头节点
                         //折叠主节点
                         ExpandCollapsePattern ExpandPattern1 = (ExpandCollapsePattern)aeBasicTreeItem.GetCurrentPattern(ExpandCollapsePattern.Pattern);
-
                         ExpandPattern1.Collapse();
                     }
                     
@@ -636,6 +637,231 @@ namespace UIAutomationTest
             Console.WriteLine(aeCameraNode.Current.Name);
             return aeCameraNode;
             
+
+        }
+        //created at 2019-10-30
+        public static unsafe void OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo)
+        {    
+
+            //定义设备个数
+            int DealDeviceNum = 0;
+            //获取所有地市级treeItem
+            AutomationElementCollection aeCitytreeItemes = aetreeItem.FindAll(TreeScope.Children,
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+            if (0 == aeCitytreeItemes.Count)
+            {
+                Console.WriteLine("aeCitytreeItem get 0.");
+                Thread.Sleep(1000);
+                return;
+            }
+            
+            int CityNumber = aeCitytreeItemes.Count;
+            Console.WriteLine(CityNumber);
+            for (int i = 0; i < CityNumber; i++)
+            { 
+                //获取地市级公司名
+                AutomationElement aeCityName = aeCitytreeItemes[i].FindFirst(TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                if (null != aeCityName)
+                {
+                    Console.WriteLine("CityName is ");
+                    Console.WriteLine(aeCityName.Current.Name);
+                    Thread.Sleep(1000);
+
+                }
+                //展开节点
+                ExpandCollapsePattern ExpandPattern1 = (ExpandCollapsePattern)aeCitytreeItemes[i].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+                //currentPattern.Collapse();
+                ExpandPattern1.Expand();
+
+                //区级节点操作
+                Thread.Sleep(1000);
+                //获取该地市区级公司
+                AutomationElementCollection aedistrictItemes = aeCitytreeItemes[i].FindAll(TreeScope.Children,
+                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                if (0 == aedistrictItemes.Count)
+                {
+                    Console.WriteLine("aedistrictItemes get 0.");
+                    continue;
+                }
+                int districtNumber = aedistrictItemes.Count;
+                Console.WriteLine(districtNumber);
+                for (int j = 0; j < districtNumber; j++)
+                {
+                    //获取区级公司名
+                    AutomationElement aedistrictName = aedistrictItemes[j].FindFirst(TreeScope.Children,
+                        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                    if (null != aedistrictName)
+                    {
+                        Console.WriteLine("aedistrictName is ");
+                        Console.WriteLine(aedistrictName.Current.Name);
+                        Thread.Sleep(1000);
+                    }
+                    //展开节点
+                    ExpandCollapsePattern ExpandPattern2 = (ExpandCollapsePattern)aedistrictItemes[j].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+                    ExpandPattern2.Expand();
+
+                    //交流电级节点操作
+                    Thread.Sleep(1000);
+                    AutomationElementCollection aeVoltageItemes = aedistrictItemes[j].FindAll(TreeScope.Children,
+                        new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                    if (0 == aeVoltageItemes.Count)
+                    {
+                        Console.WriteLine("aedistrictItemes get 0.");
+                        continue;
+                    }
+                    int VoltageNumber = aeVoltageItemes.Count;
+                    Console.WriteLine(VoltageNumber);
+                    for (int k = 0; k < VoltageNumber; k++)
+                    {
+                        //获取交流电压级别名称
+                        AutomationElement aeVoltageName = aeVoltageItemes[k].FindFirst(TreeScope.Children,
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                        if (null != aeVoltageName)
+                        {
+                            Console.WriteLine("aeVoltageName is ");
+                            Console.WriteLine(aeVoltageName.Current.Name);
+                            Thread.Sleep(1000);
+                        }
+                        //展开节点
+                        ExpandCollapsePattern ExpandPattern3 = (ExpandCollapsePattern)aeVoltageItemes[k].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                        Thread.Sleep(1000);
+
+                        ExpandPattern3.Expand();
+
+                        //杆塔线路级操作
+                        Thread.Sleep(1000);
+                        AutomationElementCollection aelineItemes = aeVoltageItemes[k].FindAll(TreeScope.Children,
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                        if (0 == aelineItemes.Count)
+                        {
+                            Console.WriteLine("aelineItemes get 0.");
+                            continue;
+                        }
+                        int lineNumber = aelineItemes.Count;
+                        Console.WriteLine(lineNumber);
+                        for (int l = 0; l < lineNumber; l++)
+                        {
+                            //获取杆塔线路名称
+                            AutomationElement aelineName = aelineItemes[l].FindFirst(TreeScope.Children,
+                                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                            if (null != aelineName)
+                            {
+                                Console.WriteLine("aelineName is ");
+                                Console.WriteLine(aelineName.Current.Name);
+                                Thread.Sleep(1000);
+                            }
+                            //展开节点
+                            ExpandCollapsePattern ExpandPattern4 = (ExpandCollapsePattern)aelineItemes[l].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+
+                            Thread.Sleep(1000);
+
+                            ExpandPattern4.Expand();
+
+                            //杆塔级操作
+                            Thread.Sleep(1000);
+                            AutomationElementCollection aetowerItemes = aelineItemes[l].FindAll(TreeScope.Children,
+                            new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
+                            if (0 == aetowerItemes.Count)
+                            {
+                                Console.WriteLine("aetowerItemes get 0.");
+                                continue;
+                            }
+                            int towerNumber = aetowerItemes.Count;
+                            Console.WriteLine(towerNumber);
+                            for (int m = 0; m < towerNumber; m++)
+                            {
+                                //获取杆塔名称
+                                AutomationElement towerName = aetowerItemes[m].FindFirst(TreeScope.Children,
+                                    new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Text));
+                                if (null != towerName)
+                                {
+                                    Console.WriteLine("towerName is ");
+                                    Console.WriteLine(towerName.Current.Name);
+                                    Thread.Sleep(1000);
+                                }
+                                //展开节点
+                                ExpandCollapsePattern ExpandPattern5 = (ExpandCollapsePattern)aetowerItemes[m].GetCurrentPattern(ExpandCollapsePattern.Pattern);
+                                ExpandPattern5.Expand();
+                                Thread.Sleep(1000);
+
+                                //摄像头操作
+                                AutomationElementCollection aeCameraNode = aetowerItemes[m].FindAll(TreeScope.Children,
+                                new PropertyCondition(AutomationElement.ClassNameProperty, "Button"));
+                                if (0 == aeCameraNode.Count)
+                                {
+                                    Console.WriteLine("aeCameraNode get fail");
+                                    continue;
+                                }
+
+
+                                //点击摄像头
+                                for (int n = 0; n < aeCameraNode.Count; n++)
+                                {
+                                    clickCameraNode(aeCameraNode[0]);
+                                    if (n == aeCameraNode.Count - 1)
+                                        ExpandPattern5.Collapse();
+                                }
+
+                                Thread.Sleep(2000);
+                                //摄像头视频数据获取
+                                deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
+                                deviceInfo[DealDeviceNum].DeviceState = true;
+                                DealDeviceNum++;
+
+                                //折叠节点
+                                if (m == towerNumber - 1)
+                                {
+                                    ExpandPattern4.Collapse();
+
+                                }
+                            }
+                                //折叠节点
+                                if (l == lineNumber - 1)
+                                {
+                                    ExpandPattern3.Collapse();
+                                }
+                            }
+                            //折叠节点
+                            if (k == VoltageNumber - 1)
+                            {
+                                ExpandPattern2.Collapse();
+                            }
+                        }
+                        //折叠节点
+                        if (j == districtNumber - 1)
+                        {
+                            ExpandPattern1.Collapse();
+                        }
+                    
+                }
+            }
+        }
+        //created at 2019-10-30
+        public static void clickCameraNode(AutomationElement CameraNode)
+        {
+            //System.Windows.Point clickablePoint;
+            SetCursorPos((int)CameraNode.Current.BoundingRectangle.X, (int)CameraNode.Current.BoundingRectangle.Y);
+            
+
+            PONITAPI p = new PONITAPI();
+            GetCursorPos(ref p);
+            Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
+            Console.WriteLine("Sleep 1 sec...");
+            Thread.Sleep(1000);
+
+
+            Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(10);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(1000);
+
+            Console.WriteLine("在X:{0}, Y:{1} 释放鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTUP, p.x, p.y, 0, 0);
+            Console.WriteLine("程序结束，按任意键退出....");
+            //Console.ReadKey();
 
         }
     }
