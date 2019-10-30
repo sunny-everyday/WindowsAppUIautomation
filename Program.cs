@@ -243,7 +243,7 @@ namespace UIAutomationTest
                     return;
                 }
                 DeviceInfo[] deviceInfo = new DeviceInfo[500];
-                OpenCameraNode(aeBasicTreeItem, deviceInfo);
+                OpenCameraNode(aeBasicTreeItem, deviceInfo,aeOutsideDetail);
                 for (int Index = 0; Index < DeviceNUM; Index++)
                 {
                     //搜索设备，查看视频状态, 记录状态
@@ -640,7 +640,7 @@ namespace UIAutomationTest
 
         }
         //created at 2019-10-30
-        public static unsafe void OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo)
+        public static unsafe void OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo, AutomationElement aeOutsideDetail)
         {    
 
             //定义设备个数
@@ -656,7 +656,7 @@ namespace UIAutomationTest
             }
             
             int CityNumber = aeCitytreeItemes.Count;
-            Console.WriteLine(CityNumber);
+            //Console.WriteLine(CityNumber);
             for (int i = 0; i < CityNumber; i++)
             { 
                 //获取地市级公司名
@@ -685,7 +685,7 @@ namespace UIAutomationTest
                     continue;
                 }
                 int districtNumber = aedistrictItemes.Count;
-                Console.WriteLine(districtNumber);
+                //Console.WriteLine(districtNumber);
                 for (int j = 0; j < districtNumber; j++)
                 {
                     //获取区级公司名
@@ -711,7 +711,7 @@ namespace UIAutomationTest
                         continue;
                     }
                     int VoltageNumber = aeVoltageItemes.Count;
-                    Console.WriteLine(VoltageNumber);
+                    //Console.WriteLine(VoltageNumber);
                     for (int k = 0; k < VoltageNumber; k++)
                     {
                         //获取交流电压级别名称
@@ -740,7 +740,7 @@ namespace UIAutomationTest
                             continue;
                         }
                         int lineNumber = aelineItemes.Count;
-                        Console.WriteLine(lineNumber);
+                        //Console.WriteLine(lineNumber);
                         for (int l = 0; l < lineNumber; l++)
                         {
                             //获取杆塔线路名称
@@ -769,7 +769,7 @@ namespace UIAutomationTest
                                 continue;
                             }
                             int towerNumber = aetowerItemes.Count;
-                            Console.WriteLine(towerNumber);
+                            //Console.WriteLine(towerNumber);
                             for (int m = 0; m < towerNumber; m++)
                             {
                                 //获取杆塔名称
@@ -788,7 +788,7 @@ namespace UIAutomationTest
 
                                 //摄像头操作
                                 AutomationElementCollection aeCameraNode = aetowerItemes[m].FindAll(TreeScope.Children,
-                                new PropertyCondition(AutomationElement.ClassNameProperty, "Button"));
+                                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TreeItem));
                                 if (0 == aeCameraNode.Count)
                                 {
                                     Console.WriteLine("aeCameraNode get fail");
@@ -799,16 +799,52 @@ namespace UIAutomationTest
                                 //点击摄像头
                                 for (int n = 0; n < aeCameraNode.Count; n++)
                                 {
-                                    clickCameraNode(aeCameraNode[0]);
+                                     AutomationElement aeCameraButton = aeCameraNode[n].FindFirst(TreeScope.Children,
+                                new PropertyCondition(AutomationElement.ClassNameProperty, "TextBlock"));
+                                    Console.WriteLine(aeCameraButton.Current.Name);
+                                    int o = aeCameraButton.Current.Name.IndexOf('(');
+                                    int p = aeCameraButton.Current.Name.IndexOf(')');
+                                    int q;
+                                    string DName1 = aeCameraButton.Current.Name.Substring(o+1, p-o-1);
+                                    Console.WriteLine(DName1);
+                                    
+                                    clickCameraNode(aeCameraButton);
+                                    Thread.Sleep(30000);
+                                    string DeviceName = GetDeviceInfoRealtime(aeOutsideDetail);
+                                    if(DeviceName == "")
+                                    {
+                                        deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
+                                        deviceInfo[DealDeviceNum].DeviceState = false;
+                                        if (n == aeCameraNode.Count - 1)
+                                            ExpandPattern5.Collapse();
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        q = DeviceName.IndexOf(':');
+                                    }
+                                    Console.WriteLine(DeviceName);
+                                    string DName2 = DeviceName.Substring(q+2);
+                                    if(DName1 == DName2)
+                                    {
+                                        deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
+                                        deviceInfo[DealDeviceNum].DeviceState = true;
+                                        Console.WriteLine(DeviceName,"online...");
+                                        if (n == aeCameraNode.Count - 1)
+                                            ExpandPattern5.Collapse();
+                                        continue;
+                                    }
+
+                                    //等待15秒
+                                    Thread.Sleep(1000);
+                                    //摄像头视频数据获取
+                                    deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
+                                    deviceInfo[DealDeviceNum].DeviceState = false;
+                                    DealDeviceNum++;
                                     if (n == aeCameraNode.Count - 1)
                                         ExpandPattern5.Collapse();
                                 }
-
-                                Thread.Sleep(2000);
-                                //摄像头视频数据获取
-                                deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
-                                deviceInfo[DealDeviceNum].DeviceState = true;
-                                DealDeviceNum++;
+                                 
 
                                 //折叠节点
                                 if (m == towerNumber - 1)
@@ -842,27 +878,68 @@ namespace UIAutomationTest
         public static void clickCameraNode(AutomationElement CameraNode)
         {
             //System.Windows.Point clickablePoint;
-            SetCursorPos((int)CameraNode.Current.BoundingRectangle.X, (int)CameraNode.Current.BoundingRectangle.Y);
+            SetCursorPos(((int)CameraNode.Current.BoundingRectangle.Left + (int)CameraNode.Current.BoundingRectangle.Right)/2,
+                ((int)CameraNode.Current.BoundingRectangle.Top + (int)CameraNode.Current.BoundingRectangle.Bottom)/2);
             
 
             PONITAPI p = new PONITAPI();
             GetCursorPos(ref p);
-            Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
-            Console.WriteLine("Sleep 1 sec...");
+            //Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
+            //Console.WriteLine("Sleep 1 sec...");
             Thread.Sleep(1000);
 
 
-            Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
+            //Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
             mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
-            Thread.Sleep(10);
-            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
-            Thread.Sleep(1000);
-
-            Console.WriteLine("在X:{0}, Y:{1} 释放鼠标左键", p.x, p.y);
+            Thread.Sleep(200);
             mouse_event(MOUSEEVENTF_LEFTUP, p.x, p.y, 0, 0);
-            Console.WriteLine("程序结束，按任意键退出....");
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(1000);
+            //Console.WriteLine("在X:{0}, Y:{1} 释放鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTUP, p.x, p.y, 0, 0);
+            //Console.WriteLine("程序结束，按任意键退出....");
             //Console.ReadKey();
 
+        }
+        //created at 2019-10-30
+        public static string GetDeviceInfoRealtime(AutomationElement aeOutsideDetail)
+        {
+           
+            AutomationElement aeTabControl = aeOutsideDetail.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "DeviceTab"));
+            if (null == aeTabControl)
+            {
+                Console.WriteLine("aeTabControl get fail at GetDeviceInfoRealtime");
+                Thread.Sleep(1000);
+                return "";
+            }
+            AutomationElement aeOnlineVideo = aeTabControl.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "OnlineVideo"));
+            if (null == aeOnlineVideo)
+            {
+                Console.WriteLine("aeOnlineVideo get fail at GetDeviceInfoRealtime");
+                Thread.Sleep(1000);
+                return "";
+            }
+
+            AutomationElement aeOnlineVideoTab = aeOnlineVideo.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "OnlineVideoTab"));
+            if (null == aeOnlineVideoTab)
+            {
+                Console.WriteLine("aeOnlineVideoTab get fail at GetDeviceInfoRealtime");
+                Thread.Sleep(1000);
+                return "";
+            }
+
+            AutomationElement aeName = aeOnlineVideoTab.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "CODE"));
+            if (null == aeName)
+            {
+                Console.WriteLine("aeName get fail at GetDeviceInfoRealtime");
+                Thread.Sleep(1000);
+                return "";
+            }
+            return aeName.Current.Name;
         }
     }
 }
