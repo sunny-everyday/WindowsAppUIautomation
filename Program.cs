@@ -47,9 +47,11 @@ namespace UIAutomationTest
 
         static void Main(string[] args)
         {
+            System.IO.StreamWriter logfile = new System.IO.StreamWriter(@"D:\Result.txt", true);
             try
             {
                 Console.WriteLine("\nBegin WinForm UIAutomation test run\n");
+                
 
                 //根据执行程序名获取进程
                 Process[] p2 = new Process[2];
@@ -61,7 +63,8 @@ namespace UIAutomationTest
                 }
                 else
                 {                 
-                    Console.WriteLine("Process get OK");         
+                    Console.WriteLine("Process get OK");
+                    logfile.WriteLine("Process get OK");
                 }
                 Console.WriteLine("Process 1");
                 AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
@@ -69,6 +72,8 @@ namespace UIAutomationTest
                 if (null == aeForm)
                 {
                     Console.WriteLine("Can not find the WinFormTest from.");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 Console.WriteLine("Process 2");
@@ -78,6 +83,8 @@ namespace UIAutomationTest
                 if (null == aeTabControl)
                 {
                     Console.WriteLine("aeTabControl get fail");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 Console.WriteLine("Process 3");
@@ -87,6 +94,8 @@ namespace UIAutomationTest
                 if (null == aeTabItemControl)
                 {
                     Console.WriteLine("aeTabItemControl get fail");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 Console.WriteLine("Process 4");
@@ -96,6 +105,8 @@ namespace UIAutomationTest
                 if (null == aeCustomControl)
                 {
                     Console.WriteLine("aeCustomControl get fail");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 Console.WriteLine("Process 5");
@@ -105,6 +116,8 @@ namespace UIAutomationTest
                 if (null == aeButton)
                 {
                     Console.WriteLine("aeButton get fail");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 Console.WriteLine("Process 6");
@@ -120,6 +133,9 @@ namespace UIAutomationTest
                 if (0 == DeviceNUM)
                 {
                     Console.WriteLine("Get NO Device from file.");
+                    logfile.WriteLine("Get NO Device from file.");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
 
@@ -128,7 +144,7 @@ namespace UIAutomationTest
                 InvokePattern ipClickButton = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
                 ipClickButton.Invoke();
 
-                Thread.Sleep(20000);
+                Thread.Sleep(2000);
 
                 //找到视频监控界面控件
                 AutomationElement aeOutsideDetail = aeCustomControl.FindFirst(TreeScope.Children,
@@ -136,14 +152,16 @@ namespace UIAutomationTest
                 if (null == aeOutsideDetail)
                 {
                     Console.WriteLine("aeOutsideDetail get fail");
-                    Thread.Sleep(1000);
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 AutomationElement aeSearch = GetSearchText(aeOutsideDetail);
                 if (null == aeSearch)
                 {
                     Console.WriteLine("aeSearch get fail");
-                    Thread.Sleep(1000);
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 };
                 AutomationElement aeBasicTreeItem = GetBasicTreeItem(aeOutsideDetail);
@@ -153,13 +171,19 @@ namespace UIAutomationTest
                 if (DeviceNUM > 500)
                 {
                     Console.WriteLine("DeviceNUM bigger than program maximum, please change program.");
+                    logfile.WriteLine("DeviceNUM bigger than program maximum, please change program.");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 DeviceInfo[] deviceInfo = new DeviceInfo[500];
-                int DealDeviceNum = OpenCameraNode(aeBasicTreeItem, deviceInfo, aeOutsideDetail);
+                int DealDeviceNum = OpenCameraNode(aeBasicTreeItem, deviceInfo, aeOutsideDetail,logfile);
                 if(DealDeviceNum == 0)
                 {
                     Console.WriteLine("DealDeviceNum is zero.");
+                    logfile.WriteLine("DealDeviceNum is zero.");
+                    logfile.Flush();
+                    logfile.Close();
                     return;
                 }
                 for (int Index = 0; Index < Math.Min(DeviceNUM, DealDeviceNum); Index++)
@@ -177,18 +201,19 @@ namespace UIAutomationTest
                 //将设备状态记录到xlsx
                 writexls(DeviceState, DeviceNUM);
 
-                Console.WriteLine("Did not find it.");
-                Console.WriteLine("Test scenario: *FAIL*");
-                
-
-                Console.WriteLine("wait for long time.");
-                Thread.Sleep(100000);
-
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Fatal error: " + ex.Message);
+                logfile.WriteLine("Fatal error: " + ex.Message);
+                logfile.Flush();
+                logfile.Close();
+                return;
             }
+
+            logfile.Flush();
+            logfile.Close();
+            return;
         }
         unsafe public static bool readxls(string[] DeviceName, int* DeviceNUM)
         {
@@ -550,7 +575,8 @@ namespace UIAutomationTest
 
         }
         //created at 2019-10-30
-        public static unsafe int OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo, AutomationElement aeOutsideDetail)
+        public static unsafe int OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo, 
+        AutomationElement aeOutsideDetail,System.IO.StreamWriter logfile)
         {    
 
             //定义设备个数
@@ -718,9 +744,11 @@ namespace UIAutomationTest
                                     string DName1 = aeCameraButton.Current.Name.Substring(o+1, p-o-1);
                                     Console.WriteLine(DName1);
                                     deviceInfo[DealDeviceNum].DeviceName = DName1;
-
+                                    //如果y坐标很大，需要移动滚动条
+                                    if ((int)aeCameraButton.Current.BoundingRectangle.Bottom > 700)
+                                        scrollwindow(aeOutsideDetail);
                                     clickCameraNode(aeCameraButton);
-                                    Thread.Sleep(30000);
+                                    Thread.Sleep(20000);
 
                                     bool DeviceButtionflag = GetDeviceVideoButton(aeOutsideDetail);
                                     
@@ -735,7 +763,7 @@ namespace UIAutomationTest
                                     {
                                         deviceInfo[DealDeviceNum].DeviceState = false;
                                     }
-                                    
+                                    logfile.WriteLine(deviceInfo[DealDeviceNum].DeviceName + ":" + deviceInfo[DealDeviceNum].DeviceState);
                                     DealDeviceNum++;
                                     if (n == aeCameraNode.Count - 1)
                                         ExpandPattern5.Collapse();
@@ -778,7 +806,6 @@ namespace UIAutomationTest
             SetCursorPos(((int)CameraNode.Current.BoundingRectangle.Left + (int)CameraNode.Current.BoundingRectangle.Right)/2,
                 ((int)CameraNode.Current.BoundingRectangle.Top + (int)CameraNode.Current.BoundingRectangle.Bottom)/2);
             
-
             PONITAPI p = new PONITAPI();
             GetCursorPos(ref p);
             //Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
@@ -942,10 +969,10 @@ namespace UIAutomationTest
                 return false;
             }
 
-            singleclickNode(aeRecordbutton);
+            clickCameraNode(aeRecordbutton);
             Thread.Sleep(2000);
-            singleclickNode(aeRecordbutton);
-            Thread.Sleep(6000);
+            clickCameraNode(aeRecordbutton);
+            Thread.Sleep(9000);
             //有弹出窗口表示设备在线，没有窗口表示不在线
             return IfhaveSaveaswindow();
         }
@@ -1016,6 +1043,56 @@ namespace UIAutomationTest
                 singleclickNode(aebutton);
                 return true;
 
+        }
+        //created at 2019-10-31
+        public static void scrollwindow(AutomationElement aeOutsideDetail)
+        {
+            Console.WriteLine("Node off screen.");
+                //找到树视图
+                bool isPatternAvailable = (bool)
+                       aeOutsideDetail.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+                AutomationElement aetree = aeOutsideDetail.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ClassNameProperty, "Tree"));
+                if (null == aetree)
+                {
+                    Console.WriteLine("aetree get fail");
+                    Thread.Sleep(1000);
+                    return ;
+                }
+                isPatternAvailable = (bool)
+                       aetree.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+                //找到ProgressBar
+                AutomationElement aeProgressBar = aetree.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ProgressBar));
+                if (null == aeProgressBar)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return ;
+                }
+                AutomationElement Treeview = aeProgressBar.FindFirst(TreeScope.Children,
+                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Tree));
+                if (null == aeProgressBar)
+                {
+                    Console.WriteLine("aeProgressBar get fail");
+                    Thread.Sleep(1000);
+                    return ;
+                }
+                isPatternAvailable = (bool)
+                       Treeview.GetCurrentPropertyValue(AutomationElement.IsScrollPatternAvailableProperty);
+                Console.WriteLine(isPatternAvailable);
+
+                ScrollPattern vpScroll = (ScrollPattern)Treeview.GetCurrentPattern(ScrollPattern.Pattern);
+                
+                Thread.Sleep(2000);
+                if (vpScroll.Current.VerticallyScrollable)
+                {
+                    vpScroll.ScrollVertical(ScrollAmount.LargeIncrement);
+
+                }
+                return;
         }
     }
 }
