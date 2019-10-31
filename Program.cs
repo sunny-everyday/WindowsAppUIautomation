@@ -165,16 +165,12 @@ namespace UIAutomationTest
                 for (int Index = 0; Index < Math.Min(DeviceNUM, DealDeviceNum); Index++)
                 {
                     //搜索设备，查看视频状态, 记录状态
-                    if (false == GetDevicestate(DeviceName[Index], deviceInfo, DeviceNUM))
-                    {
-                        DeviceState[Index] = false;
-                        Console.WriteLine("Device Index",Index,"can't find");
-                    }
-                    else
-                    {
-                        DeviceState[Index] = true;
-                        Console.WriteLine("Device Index", Index, "can find");
-                    }
+                    int order = GetDeviceOrder(deviceInfo[Index].DeviceName, DeviceName, DeviceNUM);
+                    if(order == 0xffff)
+                        continue;
+                    DeviceState[order] = deviceInfo[Index].DeviceState;
+                    Console.WriteLine(order);
+                    Console.WriteLine(deviceInfo[Index].DeviceState);
                     
                 }
 
@@ -953,16 +949,16 @@ namespace UIAutomationTest
             //有弹出窗口表示设备在线，没有窗口表示不在线
             return IfhaveSaveaswindow();
         }
-        public static bool GetDevicestate(string DeviceName, DeviceInfo[] deviceInfo, int DeviceNum)
+        public static int GetDeviceOrder(string DeviceName, string[] deviceName, int DeviceNum)
         {
             for(int i = 0; i < DeviceNum; i++)
             {
-                if(deviceInfo[i].DeviceName == DeviceName)
+                if(deviceName[i] == DeviceName)
                 {
-                    return deviceInfo[i].DeviceState;
+                    return i;
                 }
             }
-            return false;
+            return 0xffff;
             
         }
         //created at 2019-10-31
