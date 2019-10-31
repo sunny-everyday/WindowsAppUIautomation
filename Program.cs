@@ -51,93 +51,6 @@ namespace UIAutomationTest
             {
                 Console.WriteLine("\nBegin WinForm UIAutomation test run\n");
 
-                //自动化根元素
-                AutomationElement aeDeskTop = AutomationElement.RootElement;
-                if (null == aeDeskTop)
-                {
-                    Console.WriteLine("DeskTop get fail");
-                }
-
-#if BYEXE
-                //启动被测试的程序
-                Process p = Process.Start(@"D:\Debug(1)\IoTPlatform.exe");
-                if (null == p)
-                {
-                    Console.WriteLine("Process get fail");
-                }
-                //根据执行程序名获取进程
-                Process[]  p2 = new Process[2];
-                if (null == Process.GetProcessesByName("IoTPlatform.ext"))
-                {
-                    Console.WriteLine("Process get fail");
-                }
-                else
-                {
-                    p2 = Process.GetProcessesByName("IoTPlatform");
-                    
-                    {
-                        Console.WriteLine("Process get OK");
-                    }
-                    
-                }
-
-                
-                Thread.Sleep(10000);
-                AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
-                //获得对主窗体对象的引用
-                if (null == aeForm)
-                {
-                    Console.WriteLine("Can not find the WinFormTest from.");
-                }
-
-                Console.WriteLine("Finding all user controls");
-                //找到第一次出现的Button控件
-                AutomationElement aeButton = aeForm.FindFirst(TreeScope.Children,
-                  new PropertyCondition(AutomationElement.AutomationIdProperty, "BtnLogin"));
-
-                //找到所有的TextBox控件
-                AutomationElementCollection aeAllTextBoxes = aeForm.FindAll(TreeScope.Children,
-                   new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Edit));
-
-                //找到所有的下拉框控件
-                AutomationElementCollection aeComboBox = aeForm.FindAll(TreeScope.Children,
-                  new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.ComboBox));
-
-                // 控件初始化的顺序是先初始化后添加到控件
-                // this.Controls.Add(this.textBox3);                  
-                // this.Controls.Add(this.textBox2);
-                // this.Controls.Add(this.textBox1);
-
-                AutomationElement aeTextBox1 = aeAllTextBoxes[0];
-                AutomationElement aeTextBox2 = aeAllTextBoxes[1];
-                AutomationElement aeTextComboBox = aeComboBox[0];
-
-               //Console.WriteLine("Settiing user");
-                //通过ValuePattern设置TextBox1的值
-               ValuePattern vpTextBox1 = (ValuePattern)aeTextBox1.GetCurrentPattern(ValuePattern.Pattern);
-               vpTextBox1.SetValue("zhangyz5");
-               //Console.WriteLine("Settiing input user");
-               //通过ValuePattern设置TextBox2的值
-               ValuePattern vpTextBox2 = (ValuePattern)aeTextBox2.GetCurrentPattern(ValuePattern.Pattern);
-               vpTextBox2.SetValue("jsepc0730@!");
-
-                //通过ValuePattern设置TextBox3的值
-               ValuePattern vpTextBox3 = (ValuePattern)aeTextComboBox.GetCurrentPattern(ValuePattern.Pattern);
-               vpTextBox3.SetValue("正式环境");
-               Thread.Sleep(1500);
-                Console.WriteLine("Clickinig on login Button.");
-                //通过InvokePattern模拟点击按钮
-                InvokePattern ipClickButton1 = (InvokePattern)aeButton.GetCurrentPattern(InvokePattern.Pattern);
-                ipClickButton1.Invoke();
-
-                //实现关闭被测试程序
-                //WindowPattern wpCloseForm = (WindowPattern)aeForm.GetCurrentPattern(WindowPattern.Pattern);
-                //wpCloseForm.Close();
-
-                //Console.WriteLine("\nEnd test run\n");
-#endif
-
-
                 //根据执行程序名获取进程
                 Process[] p2 = new Process[2];
                 p2 = Process.GetProcessesByName("IoTPlatform");
@@ -243,23 +156,24 @@ namespace UIAutomationTest
                     return;
                 }
                 DeviceInfo[] deviceInfo = new DeviceInfo[500];
-                OpenCameraNode(aeBasicTreeItem, deviceInfo,aeOutsideDetail);
-                for (int Index = 0; Index < DeviceNUM; Index++)
+                int DealDeviceNum = OpenCameraNode(aeBasicTreeItem, deviceInfo, aeOutsideDetail);
+                if(DealDeviceNum == 0)
+                {
+                    Console.WriteLine("DealDeviceNum is zero.");
+                    return;
+                }
+                for (int Index = 0; Index < Math.Min(DeviceNUM, DealDeviceNum); Index++)
                 {
                     //搜索设备，查看视频状态, 记录状态
-                    //if (false == lookdevice(DeviceName[Index], aeSearch,aeOutsideDetail))
+                    if (false == GetDevicestate(DeviceName[Index], deviceInfo, DeviceNUM))
                     {
                         DeviceState[Index] = false;
                         Console.WriteLine("Device Index",Index,"can't find");
                     }
-                    //else
+                    else
                     {
-                        DeviceState[Index] = true;//暂时这样
+                        DeviceState[Index] = true;
                         Console.WriteLine("Device Index", Index, "can find");
-                        //获取到摄像头节点
-                        //折叠主节点
-                        ExpandCollapsePattern ExpandPattern1 = (ExpandCollapsePattern)aeBasicTreeItem.GetCurrentPattern(ExpandCollapsePattern.Pattern);
-                        ExpandPattern1.Collapse();
                     }
                     
                 }
@@ -640,7 +554,7 @@ namespace UIAutomationTest
 
         }
         //created at 2019-10-30
-        public static unsafe void OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo, AutomationElement aeOutsideDetail)
+        public static unsafe int OpenCameraNode(AutomationElement aetreeItem, DeviceInfo[] deviceInfo, AutomationElement aeOutsideDetail)
         {    
 
             //定义设备个数
@@ -652,7 +566,7 @@ namespace UIAutomationTest
             {
                 Console.WriteLine("aeCitytreeItem get 0.");
                 Thread.Sleep(1000);
-                return;
+                return 0;
             }
             
             int CityNumber = aeCitytreeItemes.Count;
@@ -807,39 +721,25 @@ namespace UIAutomationTest
                                     int q;
                                     string DName1 = aeCameraButton.Current.Name.Substring(o+1, p-o-1);
                                     Console.WriteLine(DName1);
-                                    
+                                    deviceInfo[DealDeviceNum].DeviceName = DName1;
+
                                     clickCameraNode(aeCameraButton);
                                     Thread.Sleep(30000);
-                                    string DeviceName = GetDeviceInfoRealtime(aeOutsideDetail);
-                                    if(DeviceName == "")
-                                    {
-                                        deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
-                                        deviceInfo[DealDeviceNum].DeviceState = false;
-                                        if (n == aeCameraNode.Count - 1)
-                                            ExpandPattern5.Collapse();
-                                        continue;
-                                    }
-                                    else
-                                    {
-                                        q = DeviceName.IndexOf(':');
-                                    }
-                                    Console.WriteLine(DeviceName);
-                                    string DName2 = DeviceName.Substring(q+2);
-                                    if(DName1 == DName2)
-                                    {
-                                        deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
-                                        deviceInfo[DealDeviceNum].DeviceState = true;
-                                        Console.WriteLine(DeviceName,"online...");
-                                        if (n == aeCameraNode.Count - 1)
-                                            ExpandPattern5.Collapse();
-                                        continue;
-                                    }
 
+                                    bool DeviceButtionflag = GetDeviceVideoButton(aeOutsideDetail);
+                                    
                                     //等待15秒
                                     Thread.Sleep(1000);
                                     //摄像头视频数据获取
-                                    deviceInfo[DealDeviceNum].DeviceName = aeCameraNode[0].Current.Name;
-                                    deviceInfo[DealDeviceNum].DeviceState = false;
+                                    if(DeviceButtionflag)
+                                    {
+                                        deviceInfo[DealDeviceNum].DeviceState = true;
+                                    }
+                                    else
+                                    {
+                                        deviceInfo[DealDeviceNum].DeviceState = false;
+                                    }
+                                    
                                     DealDeviceNum++;
                                     if (n == aeCameraNode.Count - 1)
                                         ExpandPattern5.Collapse();
@@ -873,6 +773,7 @@ namespace UIAutomationTest
                     
                 }
             }
+            return DealDeviceNum;
         }
         //created at 2019-10-30
         public static void clickCameraNode(AutomationElement CameraNode)
@@ -886,7 +787,7 @@ namespace UIAutomationTest
             GetCursorPos(ref p);
             //Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
             //Console.WriteLine("Sleep 1 sec...");
-            Thread.Sleep(1000);
+            Thread.Sleep(100);
 
 
             //Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
@@ -901,17 +802,38 @@ namespace UIAutomationTest
             //Console.ReadKey();
 
         }
-        //created at 2019-10-30
-        public static string GetDeviceInfoRealtime(AutomationElement aeOutsideDetail)
+        //单击
+        public static void singleclickNode(AutomationElement CameraNode)
         {
-           
-            AutomationElement aeTabControl = aeOutsideDetail.FindFirst(TreeScope.Children,
+            //System.Windows.Point clickablePoint;
+            SetCursorPos(((int)CameraNode.Current.BoundingRectangle.Left + (int)CameraNode.Current.BoundingRectangle.Right)/2,
+                ((int)CameraNode.Current.BoundingRectangle.Top + (int)CameraNode.Current.BoundingRectangle.Bottom)/2);
+            
+
+            PONITAPI p = new PONITAPI();
+            GetCursorPos(ref p);
+            //Console.WriteLine("鼠标现在的位置X:{0}, Y:{1}", p.x, p.y);
+            //Console.WriteLine("Sleep 1 sec...");
+            Thread.Sleep(100);
+
+            //Console.WriteLine("在X:{0}, Y:{1} 按下鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, p.x, p.y, 0, 0);
+            Thread.Sleep(1000);
+            //Console.WriteLine("在X:{0}, Y:{1} 释放鼠标左键", p.x, p.y);
+            mouse_event(MOUSEEVENTF_LEFTUP, p.x, p.y, 0, 0);
+            //Console.WriteLine("程序结束，按任意键退出....");
+            //Console.ReadKey();
+
+        }
+        //created at 2019-10-30
+        public static AutomationElement GetOnlineVideoTab(AutomationElement aeOutsideDetail)
+        { AutomationElement aeTabControl = aeOutsideDetail.FindFirst(TreeScope.Children,
               new PropertyCondition(AutomationElement.AutomationIdProperty, "DeviceTab"));
             if (null == aeTabControl)
             {
                 Console.WriteLine("aeTabControl get fail at GetDeviceInfoRealtime");
                 Thread.Sleep(1000);
-                return "";
+                return null;
             }
             AutomationElement aeOnlineVideo = aeTabControl.FindFirst(TreeScope.Children,
               new PropertyCondition(AutomationElement.AutomationIdProperty, "OnlineVideo"));
@@ -919,7 +841,7 @@ namespace UIAutomationTest
             {
                 Console.WriteLine("aeOnlineVideo get fail at GetDeviceInfoRealtime");
                 Thread.Sleep(1000);
-                return "";
+                return null;
             }
 
             AutomationElement aeOnlineVideoTab = aeOnlineVideo.FindFirst(TreeScope.Children,
@@ -928,9 +850,19 @@ namespace UIAutomationTest
             {
                 Console.WriteLine("aeOnlineVideoTab get fail at GetDeviceInfoRealtime");
                 Thread.Sleep(1000);
+                return null;
+            }
+            return aeOnlineVideoTab;
+        }
+        public static string GetDeviceInfoRealtime(AutomationElement aeOutsideDetail)
+        {
+            AutomationElement aeOnlineVideoTab = GetOnlineVideoTab(aeOutsideDetail);
+            if(aeOnlineVideoTab == null)
+            {
+                Console.WriteLine("aeOnlineVideoTab get fail at GetDeviceInfoRealtime");
+                Thread.Sleep(1000);
                 return "";
             }
-
             AutomationElement aeName = aeOnlineVideoTab.FindFirst(TreeScope.Children,
               new PropertyCondition(AutomationElement.AutomationIdProperty, "CODE"));
             if (null == aeName)
@@ -940,6 +872,154 @@ namespace UIAutomationTest
                 return "";
             }
             return aeName.Current.Name;
+        }
+        //created at 2019-10-31
+        public static bool GetDeviceVideoButton(AutomationElement aeOutsideDetail)
+        {
+            AutomationElement aeOnlineVideoTab = GetOnlineVideoTab(aeOutsideDetail);
+            if(aeOnlineVideoTab == null)
+            {
+                Console.WriteLine("aeOnlineVideoTab get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+            AutomationElement aePlaycontrol = aeOnlineVideoTab.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ClassNameProperty, "PlayerControl"));
+            if (null == aePlaycontrol)
+            {
+                Console.WriteLine("aeNaePlaycontrolame get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            AutomationElement aePane = aePlaycontrol.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ClassNameProperty, "WindowsFormsHost"));
+            if (null == aePane)
+            {
+                Console.WriteLine("aePane get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            AutomationElement aeMedia = aePane.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "Media"));
+            if (null == aeMedia)
+            {
+                Console.WriteLine("aeMedia get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            AutomationElement aeMainPanel = aeMedia.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "MainPanel"));
+            if (null == aeMainPanel)
+            {
+                Console.WriteLine("aeMainPanel get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            AutomationElement aeTooltip = aeMainPanel.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "TooltipPanel"));
+            if (null == aeTooltip)
+            {
+                Console.WriteLine("aeTooltip get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            AutomationElement aePicPanel = aeTooltip.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "PicPanel"));
+            if (null == aePicPanel)
+            {
+                Console.WriteLine("aePicPanel get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+            
+            AutomationElement aeRecordbutton = aePicPanel.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.AutomationIdProperty, "btn_luxiang"));
+            if (null == aeRecordbutton)
+            {
+                Console.WriteLine("aeRecordbutton get fail ");
+                Thread.Sleep(1000);
+                return false;
+            }
+
+            singleclickNode(aeRecordbutton);
+            Thread.Sleep(2000);
+            singleclickNode(aeRecordbutton);
+            Thread.Sleep(6000);
+            //有弹出窗口表示设备在线，没有窗口表示不在线
+            return IfhaveSaveaswindow();
+        }
+        public static bool GetDevicestate(string DeviceName, DeviceInfo[] deviceInfo, int DeviceNum)
+        {
+            for(int i = 0; i < DeviceNum; i++)
+            {
+                if(deviceInfo[i].DeviceName == DeviceName)
+                {
+                    return deviceInfo[i].DeviceState;
+                }
+            }
+            return false;
+            
+        }
+        //created at 2019-10-31
+        public static bool IfhaveSaveaswindow()
+        {
+            //根据执行程序名获取进程
+                Process[] p2 = new Process[2];
+                p2 = Process.GetProcessesByName("IoTPlatform");
+                if (null == p2[0])
+                {
+                    Console.WriteLine("Process get fail");
+                    return false;
+                }
+                else
+                {                 
+                    Console.WriteLine("Process get OK");         
+                }
+                Console.WriteLine("Process 1");
+                AutomationElement aeForm = AutomationElement.FromHandle(p2[0].MainWindowHandle);
+                //获得对主窗体对象的引用
+                if (null == aeForm)
+                {
+                    Console.WriteLine("Can not find the WinFormTest from.");
+                    return false;
+                }
+                Console.WriteLine("Process 2");
+
+                AutomationElement aewindow = aeForm.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.NameProperty, "另存为"));
+                if (null == aewindow)
+                {
+                    Console.WriteLine("aewindow get fail ");
+                    Thread.Sleep(1000);
+                    return false;
+                }
+                //获得对主窗体对象的引用
+                AutomationElement aeline = aewindow.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.TitleBar));
+                if (null == aeline)
+                {
+                    Console.WriteLine("aeline get fail ");
+                    Thread.Sleep(1000);
+                    return false;
+                }
+
+                AutomationElement aebutton = aeline.FindFirst(TreeScope.Children,
+              new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Button));
+                if (null == aebutton)
+                {
+                    Console.WriteLine("aebutton get fail ");
+                    Thread.Sleep(1000);
+                    return false;
+                }
+
+                singleclickNode(aebutton);
+                return true;
+
         }
     }
 }
